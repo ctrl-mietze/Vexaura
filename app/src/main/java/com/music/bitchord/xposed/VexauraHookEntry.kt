@@ -9,8 +9,6 @@ import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
-import java.lang.ref.WeakReference
-import java.util.WeakHashMap
 
 /**
  * Optional, tightly scoped Xposed compatibility layer. No file writes,
@@ -65,6 +63,8 @@ class VexauraHookEntry : IXposedHookLoadPackage {
         val ctx = card.context ?: return
         val uri = Uri.parse("content://ctrl.mietze.vexaura.systembridge/nowbar")
         val resolver = ctx.contentResolver
+        // Report the callback even with the default Samsung palette selected.
+        runCatching { resolver.call(uri, "nowbar_heartbeat", processName, null) }
         val cursor = runCatching { resolver.query(uri, null, null, null, null) }.getOrNull() ?: return
         val activeColor = cursor.use {
             if (!it.moveToFirst()) return
@@ -75,7 +75,5 @@ class VexauraHookEntry : IXposedHookLoadPackage {
         val layer = runCatching { XposedHelpers.getObjectField(card, "o1") as? View }.getOrNull()
             ?: card
         layer.backgroundTintList = ColorStateList.valueOf(activeColor)
-        // The provider validates our binder calling UID before storing status.
-        runCatching { resolver.call(uri, "nowbar_heartbeat", processName, null) }
     }
 }
