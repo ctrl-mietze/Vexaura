@@ -10,12 +10,15 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Legacy Xposed API: compile-only, never bundled inside the APK.
+        maven("https://api.xposed.info/")
+        maven("https://repository-cdn.liferay.com/nexus/content/repositories/gradle-plugins/")
         // NewPipeExtractor is published via JitPack.
         maven("https://jitpack.io")
     }
 }
 
-rootProject.name = "BitChord"
+rootProject.name = "Vexaura"
 include(":shared")
 include(":sharedUi")
 
