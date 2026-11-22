@@ -111,7 +111,7 @@
         <meta-data android:name="xposedmodule" android:value="true" />
         <meta-data android:name="xposedminversion" android:value="82" />
         <meta-data android:name="xposeddescription" android:value="Vexaura – optionale Samsung Now Bar Medienhooks" />
-        <meta-data android:name="xposedscope" android:value="com.android.systemui,com.samsung.android.app.aodservice,ctrl.mietze.vexaura" />
+        <meta-data android:name="xposedscope" android:value="com.android.systemui;com.samsung.android.app.aodservice;ctrl.mietze.vexaura" />
 
         <!-- Authenticated UID-filtered palette/status bridge for Samsung SystemUI.
              No shell, root commands, credentials, or files are exposed. -->
