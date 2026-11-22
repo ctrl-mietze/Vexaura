@@ -54,14 +54,37 @@ A first Vexaura-specific UI milestone is now in development:
 
 These are UI changes, not a release announcement. Android build validation is performed separately; the package identity and optional system integrations remain future work.
 
-## Foundation status
+## System & Root · v0.2.0
 
-> **Early development.** The initial source has been imported. App-internal rebranding, new privileged features, validation and stable releases are still ahead.
+Advanced controls are part of the same Android/Compose settings experience: no detached admin dashboard, no strange secondary design language.
+
+| Area | What's included |
+| :-- | :-- |
+| **Superuser check** | A genuine UID-0 check through the installed SU manager, with denial/timeout detection. |
+| **Xposed / LSPosed** | A real in-process module-active signal, and an optional Samsung media Now Bar hook. |
+| **Sound Settings** | Separate BassBoost strength and session loudness-gain sliders, applied by the playback service. |
+| **Audio quality** | Connected to existing Wi-Fi/cellular source quality, 16-bit/float output and bit-perfect modes. |
+| **Widgets** | Direct launcher requests for the existing Compact, Wide and Capsule player widgets. |
+| **Samsung Now Bar** | Optional media capsule tint profiles with explicit Xposed scopes and hook verification. |
+
+**Permission-aware by design:** A root-manager install does not count as a granted superuser identity. Xposed module scope does not count as an actual live SystemUI hook. The app reports each independently and leaves unsupported Samsung controls disabled on other devices.
+
+**Audio limits:** BassBoost and LoudnessEnhancer are Android audio-session effects, not an equalizer and not a promise of overriding physical volume limits. Neither effect writes to system partitions or applies to other apps. They are bypassed during bit-perfect playback.
+
+For exact scope names, security constraints, troubleshooting and architecture, see [System & Root technical notes](docs/SYSTEM_ROOT.md).
+
+### Releases
+
+Every Vexaura milestone is published through [GitHub Releases](https://github.com/ctrl-mietze/Vexaura/releases) with an APK and release notes. This repository remains a **standalone project, not a GitHub fork**.
+
+## Development status
+
+> **Early development.** Styles and the first System & Root features are being built. Features backed by private OEM hooks remain experimental until verified on compatible devices.
 
 ### Roadmap
 
-1. Establish Vexaura's package identity, UI and repeatable build.
-2. Decouple playback from optional device integrations.
+1. Establish a standalone package identity, preserving the original source packages internally.
+2. Keep optional root, shell and system integrations separate from the playback service.
 3. Introduce capability-based, consent-driven shell/root bridges.
 4. Design system integrations around genuine Android security boundaries.
 5. Test, document and release the first Vexaura build.
@@ -74,7 +97,7 @@ This is an Android/Gradle codebase. Install Android Studio, a compatible JDK and
     cd Vexaura
     ./gradlew :app:assembleDebug
 
-On Windows use **gradlew.bat :app:assembleDebug**. Build success and device compatibility have not been verified for this initial snapshot.
+On Windows use **gradlew.bat :app:assembleDebug**. Release builds are tested for each milestone. Device-specific root, Xposed and OEM hooks still require verification on the actual target device.
 
 ## Development principles
 
