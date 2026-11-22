@@ -445,6 +445,13 @@ object AppSettings {
     val playbackSpeed = MutableStateFlow(1.0f)
     val themeMode = MutableStateFlow(ThemeMode.DARK)
     val vexauraStyle = MutableStateFlow(VexauraStyle.STANDARD)
+
+    /** Extra session-local bass strength, 0..1000. Off until requested. */
+    val vexauraBassStrength = MutableStateFlow(0)
+    /** Session-local DSP gain in millibels (0..1200), not the hardware volume ceiling. */
+    val vexauraGainMb = MutableStateFlow(0)
+    /** Controls only Vexaura's optional Samsung media Now Bar tint hook. */
+    val vexauraNowBarAccent = MutableStateFlow(com.music.bitchord.data.system.NowBarAccent.SYSTEM)
     val appFont = MutableStateFlow(AppFont.DEFAULT)
 
     /** Keep playing similar music once the queue runs out. */
@@ -1105,6 +1112,13 @@ object AppSettings {
         vexauraStyle.value = runCatching {
             VexauraStyle.valueOf(prefs.getString(KEY_VEXAURA_STYLE, null) ?: VexauraStyle.STANDARD.name)
         }.getOrDefault(VexauraStyle.STANDARD)
+        vexauraBassStrength.value = prefs.getInt(KEY_VEXAURA_BASS, 0).coerceIn(0, 1000)
+        vexauraGainMb.value = prefs.getInt(KEY_VEXAURA_GAIN, 0).coerceIn(0, 1200)
+        vexauraNowBarAccent.value = runCatching {
+            com.music.bitchord.data.system.NowBarAccent.valueOf(
+                prefs.getString(KEY_VEXAURA_NOW_BAR, "SYSTEM") ?: "SYSTEM",
+            )
+        }.getOrDefault(com.music.bitchord.data.system.NowBarAccent.SYSTEM)
         appFont.value = runCatching {
             AppFont.valueOf(prefs.getString(KEY_APP_FONT, null) ?: AppFont.DEFAULT.name)
         }.getOrDefault(AppFont.DEFAULT)
@@ -1664,6 +1678,23 @@ object AppSettings {
         val editor = prefs.edit().putBoolean(KEY_REDUCE_BLUR, value)
         if (value) editor.putBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
         editor.apply()
+    }
+
+    fun setVexauraBassStrength(value: Int) {
+        val selected = value.coerceIn(0, 1000)
+        vexauraBassStrength.value = selected
+        prefs.edit().putInt(KEY_VEXAURA_BASS, selected).apply()
+    }
+
+    fun setVexauraGainMb(value: Int) {
+        val selected = value.coerceIn(0, 1200)
+        vexauraGainMb.value = selected
+        prefs.edit().putInt(KEY_VEXAURA_GAIN, selected).apply()
+    }
+
+    fun setVexauraNowBarAccent(value: com.music.bitchord.data.system.NowBarAccent) {
+        vexauraNowBarAccent.value = value
+        prefs.edit().putString(KEY_VEXAURA_NOW_BAR, value.name).apply()
     }
 
     fun setVexauraStyle(style: VexauraStyle) {
@@ -2460,6 +2491,9 @@ object AppSettings {
     private const val KEY_SPEED = "playback_speed"
     private const val KEY_THEME = "theme_mode"
     private const val KEY_VEXAURA_STYLE = "vexaura_style"
+    private const val KEY_VEXAURA_BASS = "vexaura_bass_strength"
+    private const val KEY_VEXAURA_GAIN = "vexaura_gain_mb"
+    private const val KEY_VEXAURA_NOW_BAR = "vexaura_nowbar_accent"
     private const val KEY_APP_FONT = "app_font"
     private const val KEY_AUTOPLAY = "autoplay"
     private const val KEY_SHUFFLE_ENABLED = "shuffle_enabled"
