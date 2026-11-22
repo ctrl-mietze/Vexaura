@@ -198,6 +198,7 @@ import com.music.bitchord.ui.screens.PartyServerEditor
 import com.music.bitchord.ui.screens.SignatureApiEditor
 import com.music.bitchord.ui.screens.SettingsScreen
 import com.music.bitchord.ui.screens.StylesScreen
+import com.music.bitchord.ui.screens.SystemRootScreen
 import com.music.bitchord.ui.screens.SourceEditorAlert
 import com.music.bitchord.ui.screens.SourcesScreen
 import com.music.bitchord.data.sources.TrackMatcher
@@ -3279,6 +3280,14 @@ private fun BitChordApp(
                             )
                         } else if (pageRoute == AppRoute.Styles) {
                             StylesScreen(contentPadding = listPadding)
+                        } else if (pageRoute == AppRoute.SystemRoot) {
+                            SystemRootScreen(
+                                contentPadding = listPadding,
+                                onWifiQuality = { navigator.push(AppRoute.SettingsChoice(com.music.bitchord.ui.screens.SettingsChoiceKind.AUDIO_QUALITY_WIFI)) },
+                                onCellularQuality = { navigator.push(AppRoute.SettingsChoice(com.music.bitchord.ui.screens.SettingsChoiceKind.AUDIO_QUALITY_CELLULAR)) },
+                                onBitPerfect = { navigator.push(AppRoute.SettingsChoice(com.music.bitchord.ui.screens.SettingsChoiceKind.BIT_PERFECT)) },
+                                onPlaybackSettings = { navigator.push(AppRoute.SettingsSection(com.music.bitchord.ui.screens.SettingsCategory.PLAYBACK)) },
+                            )
                         } else if (pageRoute is AppRoute.SettingsChoice) {
                             SettingsChoicePage(
                                 choice = pageRoute.choice,
@@ -3293,6 +3302,7 @@ private fun BitChordApp(
                                 section = (pageRoute as? AppRoute.SettingsSection)?.category,
                                 onOpenSection = { navigator.push(AppRoute.SettingsSection(it)) },
                                 onOpenStyles = { navigator.push(AppRoute.Styles) },
+                                onOpenSystemRoot = { navigator.push(AppRoute.SystemRoot) },
                                 onOpenChoice = { navigator.push(AppRoute.SettingsChoice(it)) },
                                 windowWidth = windowWidth,
                                 signedIn = signedIn,
@@ -4016,6 +4026,7 @@ private fun BitChordApp(
                         AppRoute.Equalizer -> stringResource(R.string.equalizer)
                         AppRoute.Settings -> stringResource(R.string.settings)
                         AppRoute.Styles -> "Styles"
+                        AppRoute.SystemRoot -> "System & Root"
                         is AppRoute.SettingsSection -> stringResource(route.category.title)
                         is AppRoute.SettingsChoice -> stringResource(route.choice.title)
                         AppRoute.EqualizerPresets -> stringResource(R.string.equalizer_preset)
