@@ -3116,7 +3116,7 @@ private fun SettingsCategoryList(
 ) {
     SettingsGroup {
         SettingsRow(
-            icon = Icons.Rounded.SettingsApplications,
+            icon = Icons.Rounded.Settings,
             title = "System & Root",
             subtitle = "Superuser, Sound, Widgets und Samsung Now Bar",
             onClick = onOpenSystemRoot,
