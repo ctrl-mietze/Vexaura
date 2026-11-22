@@ -29,9 +29,38 @@ if (-not (Test-Path -LiteralPath $keyfile)) {
     throw 'The original Vexaura signing key was not found. Refusing to create a different one.'
 }
 $gh = Get-Command gh -ErrorAction Stop
-& $gh.Source auth status *> $null
-if ($LASTEXITCODE -ne 0) {
-    throw 'The GitHub CLI is not authenticated. Sign in using gh auth login first.'
+
+# PowerShell 5.1 treats some native stderr messages as terminating errors even
+# when the command succeeds. Capture exit codes without displaying credentials.
+function Invoke-GhText([string]$arguments) {
+    $info = New-Object System.Diagnostics.ProcessStartInfo
+    $info.FileName = $gh.Source
+    $info.Arguments = $arguments
+    $info.UseShellExecute = $false
+    $info.RedirectStandardInput = $false
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $info.CreateNoWindow = $true
+    $process = [System.Diagnostics.Process]::Start($info)
+    try {
+        $output = $process.StandardOutput.ReadToEnd()
+        $errorOutput = $process.StandardError.ReadToEnd()
+        if (-not $process.WaitForExit(30000)) {
+            $process.Kill()
+            throw 'GitHub CLI timed out.'
+        }
+        if ($process.ExitCode -ne 0) {
+            throw ('GitHub CLI command failed: ' + $arguments + ' (exit ' + $process.ExitCode + ') ' + $errorOutput.Trim())
+        }
+        return $output.Trim()
+    } finally {
+        $process.Dispose()
+    }
+}
+
+$activeLogin = Invoke-GhText 'api user --jq .login'
+if ($activeLogin -ne 'ctrl-mietze') {
+    throw ('Active GitHub account is not ctrl-mietze: ' + $activeLogin)
 }
 
 $secrets = [ordered]@{
@@ -71,3 +100,12 @@ foreach ($secretName in $secrets.Keys) {
 
 $secrets.Clear()
 Write-Output 'Vexaura signing configured. The original key remains stored only on your Surface and encrypted in GitHub Actions Secrets.'
+
+# Immediately start the previously prepared v0.2.0 release from main.
+# An absent tag is created by GitHub Actions only after APK signature checks.
+# The workflow refuses to change/replace an existing published release.
+Invoke-GhText "workflow run vexaura-android.yml -R $repo --ref main" | Out-Null
+Write-Output 'Vexaura signed release workflow triggered on main.'
+Write-Output 'Follow progress: https://github.com/ctrl-mietze/Vexaura/actions/workflows/vexaura-android.yml'
+Write-Output 'Once checks pass, APK appears at https://github.com/ctrl-mietze/Vexaura/releases'
+
