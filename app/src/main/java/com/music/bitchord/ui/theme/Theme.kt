@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
 import com.music.bitchord.data.settings.AppFont
+import com.music.bitchord.data.settings.VexauraStyle
 
 // Apple Music's signature red. No longer the primary accent, but kept for the
 // spots (Replay's rank badge) that want that specific red regardless of theme.
@@ -33,6 +34,28 @@ private val DarkColors = darkColorScheme(
     surfaceVariant = Color(0xFF1C1C1E),
     onSurfaceVariant = Color(0xFF8E8E93),
     outline = Color(0xFF2C2C2E),
+)
+
+private val VeyraPurpleColors = DarkColors.copy(
+    primary = Color(0xFFB591FC),
+    onPrimary = Color(0xFF130622),
+    background = Color.Black,
+    surface = Color(0xFF0D0A12),
+    surfaceVariant = Color(0xFF241B2C),
+    onSurfaceVariant = Color(0xFFB8A8C6),
+    outline = Color(0xFF3D3047),
+    secondary = Color(0xFF9064E3),
+)
+
+private val VeyraRedPurpleColors = DarkColors.copy(
+    primary = Color(0xFFE66B93),
+    onPrimary = Color(0xFF240911),
+    background = Color.Black,
+    surface = Color(0xFF100B13),
+    surfaceVariant = Color(0xFF271921),
+    onSurfaceVariant = Color(0xFFC7ADB9),
+    outline = Color(0xFF513442),
+    secondary = Color(0xFFAB84FD),
 )
 
 private val LightColors = lightColorScheme(
@@ -142,10 +165,15 @@ private fun Typography.withFamily(family: FontFamily) = Typography(
 fun BitChordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     font: AppFont = AppFont.DEFAULT,
+    style: VexauraStyle = VexauraStyle.STANDARD,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = when (style) {
+            VexauraStyle.STANDARD -> if (darkTheme) DarkColors else LightColors
+            VexauraStyle.VEYRA_OLED_PURPLE, VexauraStyle.VEYRA_CLOUD_OLED_PURPLE -> VeyraPurpleColors
+            VexauraStyle.VEYRA_OLED_PURPLE_RED, VexauraStyle.VEYRA_CLOUD_RED_PURPLE_OLED -> VeyraRedPurpleColors
+        },
         typography = when (font) {
             AppFont.DEFAULT -> BitChordTypography
             AppFont.LEGACY -> LegacyTypography
