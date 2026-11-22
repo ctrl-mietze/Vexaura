@@ -76,6 +76,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
@@ -237,6 +238,7 @@ fun FloatingTabBar(
                     accessory = inlineAccessory,
                     isAccessoryShared = isAccessoryShared,
                     onInlineTabClick = { scrollConnection.expand() },
+                    mergeStandalone = mergeStandaloneWhenExpanded,
                     colors = colors,
                     shapes = shapes,
                     sizes = sizes,
@@ -421,6 +423,7 @@ private fun SharedTransitionScope.InlineBar(
     accessory: (@Composable SharedTransitionScope.(Modifier, AnimatedVisibilityScope) -> Unit)?,
     isAccessoryShared: Boolean,
     onInlineTabClick: () -> Unit,
+    mergeStandalone: Boolean,
     colors: FloatingTabBarColors,
     shapes: FloatingTabBarShapes,
     sizes: FloatingTabBarSizes,
@@ -431,6 +434,7 @@ private fun SharedTransitionScope.InlineBar(
     val inlineTab = scope.getInlineTab(selectedTabKey)
     val standaloneTab = scope.standaloneTab
     val hasInlineTab = inlineTab != null
+    val embedStandalone = mergeStandalone && standaloneTab != null && hasInlineTab
 
     // With an accessory the row spans the full width ([tab][accessory][standalone],
     // iOS 26 Apple Music style); without one, the cluster is packed and centered.
@@ -453,7 +457,8 @@ private fun SharedTransitionScope.InlineBar(
                 elevations = elevations,
                 animatedVisibilityScope = animatedVisibilityScope,
                 tabBarContentModifier = tabBarContentModifier,
-                modifier = Modifier
+                modifier = Modifier,
+                companionTab = standaloneTab.takeIf { embedStandalone },
             )
         }
 
@@ -471,7 +476,7 @@ private fun SharedTransitionScope.InlineBar(
             )
         }
 
-        if (standaloneTab != null) {
+        if (standaloneTab != null && !embedStandalone) {
             InlineStandaloneTab(
                 standaloneTab = standaloneTab,
                 shapes = shapes,
@@ -497,7 +502,8 @@ private fun SharedTransitionScope.InlineTab(
     elevations: FloatingTabBarElevations,
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier,
-    tabBarContentModifier: @Composable () -> Modifier
+    tabBarContentModifier: @Composable () -> Modifier,
+    companionTab: FloatingTabBarTab? = null,
 ) {
     Box(
         modifier = modifier
@@ -526,7 +532,8 @@ private fun SharedTransitionScope.InlineTab(
             )
             .padding(sizes.tabInlineContentPadding)
     ) {
-        Tab(
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Tab(
             icon = {
                 Box(
                     Modifier.sharedElement(
@@ -540,7 +547,26 @@ private fun SharedTransitionScope.InlineTab(
             },
             title = { inlineTab.title() },
             isInline = true
-        )
+            )
+            if (companionTab != null) {
+                // Search keeps its own touch target but shares the same lens as
+                // the selected tab. This avoids a detached circle on collapse.
+                Box(
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .clickable(
+                            onClick = companionTab.onClick,
+                            indication = companionTab.indication?.invoke(),
+                            interactionSource = remember { MutableInteractionSource() },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    companionTab.icon()
+                }
+            }
+        }
     }
 }
 

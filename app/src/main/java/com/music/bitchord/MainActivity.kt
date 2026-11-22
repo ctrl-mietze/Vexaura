@@ -165,6 +165,7 @@ import com.music.bitchord.data.settings.BitPerfectMode
 import com.music.bitchord.ui.AddonBlockedAlert
 import com.music.bitchord.data.settings.LibrarySort
 import com.music.bitchord.data.settings.ThemeMode
+import com.music.bitchord.data.settings.VexauraStyle
 import com.music.bitchord.ui.components.AccountProfileSelector
 import com.music.bitchord.ui.components.DacVolumeHud
 import com.music.bitchord.ui.components.DacVolumeKeys
@@ -196,6 +197,7 @@ import com.music.bitchord.ui.screens.ListenTogetherScreen
 import com.music.bitchord.ui.screens.PartyServerEditor
 import com.music.bitchord.ui.screens.SignatureApiEditor
 import com.music.bitchord.ui.screens.SettingsScreen
+import com.music.bitchord.ui.screens.StylesScreen
 import com.music.bitchord.ui.screens.SourceEditorAlert
 import com.music.bitchord.ui.screens.SourcesScreen
 import com.music.bitchord.data.sources.TrackMatcher
@@ -379,6 +381,7 @@ import com.music.bitchord.ui.replay.ReplayStories
 import com.music.bitchord.ui.replay.ReplayStoryPage
 import com.music.bitchord.ui.replay.rememberReplayState
 import com.music.bitchord.ui.theme.BitChordTheme
+import com.music.bitchord.ui.theme.vexauraCloudEffect
 import com.music.bitchord.ui.theme.rememberArtworkPalette
 import com.music.bitchord.data.canvas.AppleArtistArtRepository
 import com.music.bitchord.data.canvas.keyColors
@@ -439,6 +442,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
+            val vexauraStyle by AppSettings.vexauraStyle.collectAsStateWithLifecycle()
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
             val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
             val iosOverscrollFactory = rememberIosOverscrollFactory()
@@ -447,12 +451,13 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(highPerformance, performanceRefreshRate, composeView) {
                 applyPerformanceMode(highPerformance, performanceRefreshRate, composeView)
             }
-            val darkTheme = when (theme) {
+            // OLED profiles always use their black palette; Standard still obeys Theme.
+            val darkTheme = if (vexauraStyle != VexauraStyle.STANDARD) true else when (theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            BitChordTheme(darkTheme = darkTheme, font = appFont) {
+            BitChordTheme(darkTheme = darkTheme, font = appFont, style = vexauraStyle) {
                 // The glass surfaces sample this layer, and a layer records only
                 // what is drawn into it — which, for BitChord, is a page that
                 // paints no background of its own. Everywhere a page is not
@@ -570,6 +575,7 @@ private fun BitChordApp(
     // Recording the backdrop layer costs a draw pass, so it only runs when a
     // liquid-glass surface (the nav bar or artwork-page back button) can sample it.
     val glassActive = LocalLiquidGlassEnabled.current && isGlassSupported()
+    val vexauraStyle by AppSettings.vexauraStyle.collectAsStateWithLifecycle()
     // "Reduce dynamic blur" keeps the glass bar's *shape* — the folding
     // now-playing-and-tabs component is a layout, not an effect, and dropping
     // back to the two stacked bars would be answering a question about material
@@ -2954,6 +2960,7 @@ private fun BitChordApp(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .vexauraCloudEffect(vexauraStyle, reducePlayerMotion)
             // Nothing of the page under a portrait player that is fully up:
             // that player is its own window, opaque from edge to edge, and
             // this one drawing on behind it — the page, the glass bar and the
@@ -3270,6 +3277,8 @@ private fun BitChordApp(
                                 onChosen = { navigator.pop() },
                                 contentPadding = listPadding,
                             )
+                        } else if (pageRoute == AppRoute.Styles) {
+                            StylesScreen(contentPadding = listPadding)
                         } else if (pageRoute is AppRoute.SettingsChoice) {
                             SettingsChoicePage(
                                 choice = pageRoute.choice,
@@ -3283,6 +3292,7 @@ private fun BitChordApp(
                             SettingsScreen(
                                 section = (pageRoute as? AppRoute.SettingsSection)?.category,
                                 onOpenSection = { navigator.push(AppRoute.SettingsSection(it)) },
+                                onOpenStyles = { navigator.push(AppRoute.Styles) },
                                 onOpenChoice = { navigator.push(AppRoute.SettingsChoice(it)) },
                                 windowWidth = windowWidth,
                                 signedIn = signedIn,
@@ -4005,6 +4015,7 @@ private fun BitChordApp(
                         AppRoute.DriveDevices -> stringResource(R.string.drive_devices_title)
                         AppRoute.Equalizer -> stringResource(R.string.equalizer)
                         AppRoute.Settings -> stringResource(R.string.settings)
+                        AppRoute.Styles -> "Styles"
                         is AppRoute.SettingsSection -> stringResource(route.category.title)
                         is AppRoute.SettingsChoice -> stringResource(route.choice.title)
                         AppRoute.EqualizerPresets -> stringResource(R.string.equalizer_preset)

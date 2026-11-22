@@ -228,6 +228,8 @@ fun SettingsScreen(
     onOpenSection: (SettingsCategory) -> Unit = {},
     /** Opens a choice with more options than its row can show, as a page. */
     onOpenChoice: (SettingsChoiceKind) -> Unit = {},
+    /** Opens Vexaura's visual-profile page inside the existing settings stack. */
+    onOpenStyles: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -604,7 +606,7 @@ fun SettingsScreen(
             // The categories, each a page of its own — until there is a query,
             // when their rows answer here instead (below).
             if (!searching) {
-                SettingsCategoryList(onOpen = onOpenSection)
+                SettingsCategoryList(onOpen = onOpenSection, onOpenStyles = onOpenStyles)
                 if (watchAvailable) {
                     SettingsGroup {
                         WearOsSettingsRow(onClick = onWearOs)
@@ -1116,6 +1118,14 @@ fun SettingsScreen(
         }
 
         if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.appearance)) {
+            row("Styles", "veyra", "oled", "theme", "animation", "cloud") {
+                SettingsRow(
+                    icon = SfIcons.Appearance,
+                    title = "Styles",
+                    subtitle = "OLED-Designs und bewegte Hintergründe",
+                    onClick = onOpenStyles,
+                )
+            }
             val themeTitle = stringResource(R.string.theme)
             row(themeTitle, "dark mode", "light mode") {
                 SettingsRow(icon = Icons.Rounded.Brightness4, title = themeTitle)
@@ -3094,8 +3104,18 @@ enum class SettingsChoiceKind(@param:StringRes val title: Int) {
 
 /** The main page's list of categories: a glyph and a name each, and a chevron into it. */
 @Composable
-private fun SettingsCategoryList(onOpen: (SettingsCategory) -> Unit) {
+private fun SettingsCategoryList(
+    onOpen: (SettingsCategory) -> Unit,
+    onOpenStyles: () -> Unit,
+) {
     SettingsGroup {
+        SettingsRow(
+            icon = SfIcons.Appearance,
+            title = "Styles",
+            subtitle = "OLED, Liquid Glass und Animationen",
+            onClick = onOpenStyles,
+        )
+        RowDivider()
         SettingsCategory.entries.forEachIndexed { index, category ->
             if (index > 0) RowDivider()
             SettingsRow(

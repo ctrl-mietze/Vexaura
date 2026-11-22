@@ -133,10 +133,10 @@ fun GlassNavBar(
     // handler out of the key.
     val currentOnTabSelected by rememberUpdatedState(onTabSelected)
 
-    // Search is the odd one out when collapsed: a circle of its own at the end
-    // of the row. It is the last tab in BitChord's order, which is where the
-    // shape wants it anyway. Expanded, it is folded back into the pill.
-    val standaloneIndex = tabs.lastIndex
+    // Search stays part of the glass island in both densities: it is merged
+    // as a regular fifth tab when expanded, and beside the active tab within
+    // the *same* pill when the player docks inline.
+    val searchIndex = tabs.lastIndex
 
     // A factory, not a value — see the note in FloatingTabBar's header. Each of
     // the three surfaces gets its own glass modifier and so its own shape cache.
@@ -237,8 +237,8 @@ fun GlassNavBar(
         contentKey = remember(selectedIndex, tabs, contentColor) {
             listOf(selectedIndex, tabs, contentColor)
         },
-        // Expanded, Search shares the tab pill; collapsed, it is the circle at
-        // the end of the row.
+        // Expanded: merge Search as the final tab. Inline: group it beside the
+        // active tab in the same glass surface (never an outside circle).
         mergeStandaloneWhenExpanded = true,
     ) {
         tabs.forEachIndexed { index, tab ->
@@ -273,8 +273,7 @@ fun GlassNavBar(
                     modifier = Modifier.padding(top = TAB_ICON_LABEL_GAP),
                 )
             }
-            if (index == standaloneIndex) {
-                // Titled for the expanded bar, where it is the pill's last tab.
+            if (index == searchIndex) {
                 standaloneTab(key = index, icon = icon, onClick = onClick, title = title)
             } else {
                 tab(key = index, icon = icon, title = title, onClick = onClick)
