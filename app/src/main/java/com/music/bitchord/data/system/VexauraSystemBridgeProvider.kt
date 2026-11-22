@@ -43,7 +43,7 @@ class VexauraSystemBridgeProvider : ContentProvider() {
             NowBarAccent.valueOf(prefs.getString("vexaura_nowbar_accent", "SYSTEM") ?: "SYSTEM")
         }.getOrDefault(NowBarAccent.SYSTEM)
         return MatrixCursor(arrayOf("enabled", "accent", "argb")).apply {
-            addRow(arrayOf(if (selected == NowBarAccent.SYSTEM) 0 else 1, selected.name, selected.color))
+            addRow(arrayOf<Any>(if (selected == NowBarAccent.SYSTEM) 0 else 1, selected.name, selected.color))
         }
     }
 
