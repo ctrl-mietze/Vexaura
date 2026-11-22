@@ -230,6 +230,7 @@ fun SettingsScreen(
     onOpenChoice: (SettingsChoiceKind) -> Unit = {},
     /** Opens Vexaura's visual-profile page inside the existing settings stack. */
     onOpenStyles: () -> Unit = {},
+    onOpenSystemRoot: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -606,7 +607,11 @@ fun SettingsScreen(
             // The categories, each a page of its own — until there is a query,
             // when their rows answer here instead (below).
             if (!searching) {
-                SettingsCategoryList(onOpen = onOpenSection, onOpenStyles = onOpenStyles)
+                SettingsCategoryList(
+                    onOpen = onOpenSection,
+                    onOpenStyles = onOpenStyles,
+                    onOpenSystemRoot = onOpenSystemRoot,
+                )
                 if (watchAvailable) {
                     SettingsGroup {
                         WearOsSettingsRow(onClick = onWearOs)
@@ -3107,8 +3112,16 @@ enum class SettingsChoiceKind(@param:StringRes val title: Int) {
 private fun SettingsCategoryList(
     onOpen: (SettingsCategory) -> Unit,
     onOpenStyles: () -> Unit,
+    onOpenSystemRoot: () -> Unit,
 ) {
     SettingsGroup {
+        SettingsRow(
+            icon = Icons.Rounded.SettingsApplications,
+            title = "System & Root",
+            subtitle = "Superuser, Sound, Widgets und Samsung Now Bar",
+            onClick = onOpenSystemRoot,
+        )
+        RowDivider()
         SettingsRow(
             icon = SfIcons.Appearance,
             title = "Styles",
