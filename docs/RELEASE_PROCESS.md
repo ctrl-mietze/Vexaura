@@ -41,7 +41,9 @@ Existing releases are never silently overwritten.
 
 ### Making a version
 
-Update the Gradle versionName and increment versionCode. Add optional release notes under `docs/releases/vX.Y.Z.md`, then push a new annotated tag `vX.Y.Z`. A tag push automatically builds and publishes the release. The same workflow can be manually triggered via GitHub Actions using an **existing** tag.
+Update the Gradle versionName and increment versionCode. Add optional release notes under `docs/releases/vX.Y.Z.md` and **merge the changes into main**. GitHub Actions automatically builds the signed ProdRelease APK and creates the corresponding tag and GitHub Release **only after signature, package and version verification succeed**.
+
+Existing releases are detected and skipped, never silently overwritten. Explicit tag pushes and manually dispatched releases with an existing tag are also supported. The permanent signing secrets must be configured before the release can succeed; in their absence the workflow **fails rather than publishing an incorrectly signed APK**. After a one-time signing setup, rerun the failed release job from GitHub Actions if necessary.
 
 Pull requests receive a separate ProdDebug Kotlin/Android compile check with no signing secrets.
 
