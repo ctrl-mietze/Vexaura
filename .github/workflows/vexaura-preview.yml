@@ -1,0 +1,89 @@
+name: Vexaura v0.2.0 — installable development preview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/vexaura-preview.yml"
+      - "app/src/main/java/com/music/bitchord/xposed/VexauraHookEntry.kt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    permissions:
+      contents: write
+    env:
+      PREVIEW_TAG: preview-0.2.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip previously published preview
+        id: available
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$PREVIEW_TAG" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Preview already published. Refusing to silently overwrite the APK."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v4
+        if: steps.available.outputs.skip != 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.available.outputs.skip != 'true'
+      - uses: android-actions/setup-android@v4
+        if: steps.available.outputs.skip != 'true'
+
+      - name: Install native Android dependencies
+        if: steps.available.outputs.skip != 'true'
+        run: |
+          sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Build installable development APK
+        if: steps.available.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDevDebug -Pbitchord.bundleWear=false --no-daemon --console=plain
+
+      - name: Verify signature, independent app ID and version
+        if: steps.available.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' APKS < <(find app/build/outputs/apk/dev/debug -maxdepth 1 -type f -name '*universal*.apk' -print0)
+          [[ "${#APKS[@]}" == 1 ]] || { echo "::error::Expected one universal DevDebug APK, found ${#APKS[@]}"; exit 1; }
+          APK="${APKS[0]}"
+          SIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          [[ -x "$SIGNER" && -x "$AAPT" ]] || { echo "::error::Signing or package verification tools missing"; exit 1; }
+          "$SIGNER" verify --verbose "$APK"
+          PACKAGE="$("$AAPT" dump badging "$APK" | grep -m1 '^package:')"
+          [[ "$PACKAGE" == *"name='ctrl.mietze.vexaura.dev'"* ]] || { echo "::error::Incorrect preview package"; exit 1; }
+          [[ "$PACKAGE" == *"versionName='0.2.0'"* ]] || { echo "::error::Incorrect preview version"; exit 1; }
+          mkdir -p dist
+          cp "$APK" "dist/Vexaura-0.2.0-PREVIEW-debug.apk"
+          (cd dist && sha256sum 'Vexaura-0.2.0-PREVIEW-debug.apk' > 'Vexaura-0.2.0-PREVIEW-debug.apk.sha256')
+          echo "Verified $PACKAGE"
+
+      - name: Publish openly labeled preview Release
+        if: steps.available.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$PREVIEW_TAG" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "Vexaura 0.2.0 Preview (Dev)" \
+            --notes-file docs/releases/preview-0.2.0.md \
+            --prerelease
