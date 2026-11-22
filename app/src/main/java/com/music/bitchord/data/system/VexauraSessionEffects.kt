@@ -91,7 +91,7 @@ class VexauraSessionEffects {
                     "Mindestens ein DSP-Effekt wird von diesem Ausgabepfad nicht unterstützt."
                 targetBass == 0 && targetGain == 0 ->
                     "Keine zusätzliche Audioverarbeitung aktiviert."
-                else -> "Audioeffekte auf Vexauras Wiedergabesitzung aktiv.",
+                else -> "Audioeffekte auf Vexauras Wiedergabesitzung aktiv."
             },
         )
         VexauraAudioFxRuntime.status.value = status.value
