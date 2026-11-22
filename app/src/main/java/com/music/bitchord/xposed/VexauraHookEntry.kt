@@ -3,6 +3,7 @@ package com.music.bitchord.xposed
 import android.content.res.ColorStateList
 import android.net.Uri
 import android.view.View
+import java.util.WeakHashMap
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
@@ -16,6 +17,9 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
  * It only tints Samsung's existing media capsule view in memory.
  */
 class VexauraHookEntry : IXposedHookLoadPackage {
+    /** Keep a weak record of the OEM's initial tint so Systemstandard can restore it. */
+    private val originalTints = WeakHashMap<View, ColorStateList?>()
+
     override fun handleLoadPackage(param: XC_LoadPackage.LoadPackageParam) {
         when (param.packageName) {
             "ctrl.mietze.vexaura", "ctrl.mietze.vexaura.dev" -> markOwnApp(param)
@@ -66,14 +70,30 @@ class VexauraHookEntry : IXposedHookLoadPackage {
         // Report the callback even with the default Samsung palette selected.
         runCatching { resolver.call(uri, "nowbar_heartbeat", processName, null) }
         val cursor = runCatching { resolver.query(uri, null, null, null, null) }.getOrNull() ?: return
-        val activeColor = cursor.use {
+        val selection = cursor.use {
             if (!it.moveToFirst()) return
             val enabled = it.getInt(it.getColumnIndexOrThrow("enabled")) == 1
-            if (!enabled) return
-            it.getInt(it.getColumnIndexOrThrow("argb"))
+            val color = it.getInt(it.getColumnIndexOrThrow("argb"))
+            enabled to color
         }
         val layer = runCatching { XposedHelpers.getObjectField(card, "o1") as? View }.getOrNull()
             ?: card
-        layer.backgroundTintList = ColorStateList.valueOf(activeColor)
+
+        if (selection.first) {
+            synchronized(originalTints) {
+                if (!originalTints.containsKey(layer)) {
+                    originalTints[layer] = layer.backgroundTintList
+                }
+            }
+            layer.backgroundTintList = ColorStateList.valueOf(selection.second)
+        } else {
+            // Never leave a custom tint behind after selecting the OEM default.
+            // A null stored tint is a valid original value.
+            synchronized(originalTints) {
+                if (originalTints.containsKey(layer)) {
+                    layer.backgroundTintList = originalTints.remove(layer)
+                }
+            }
+        }
     }
 }
