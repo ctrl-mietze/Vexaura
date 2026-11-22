@@ -79,6 +79,7 @@ fun SystemRootScreen(
     val usbPreferred by AppSettings.preferUsbDac.collectAsStateWithLifecycle()
     var root by remember { mutableStateOf(RootCheck(RootGrant.NOT_CHECKED, "Noch nicht geprüft.")) }
     var checkingRoot by remember { mutableStateOf(false) }
+    var hookStatusRefresh by remember { mutableStateOf(0) }
     var selectNowBar by remember { mutableStateOf<NowBarAccent?>(null) }
 
     // Refreshing is an explicit in-page action; the root manager may display
@@ -93,7 +94,7 @@ fun SystemRootScreen(
     }
     LaunchedEffect(Unit) { checkRoot() }
 
-    val lastHook = remember(nowBarAccent, checkingRoot) {
+    val lastHook = remember(nowBarAccent, checkingRoot, hookStatusRefresh) {
         context.getSharedPreferences("vexaura_hook_status", 0).getLong("last_seen", 0L)
     }
     val systemUiHookConfirmed = xposedApp && lastHook > 0L &&
@@ -347,6 +348,7 @@ fun SystemRootScreen(
                     "Kein aktueller Hook-Heartbeat. Erst nach Xposed-Neustart und beim Erscheinen der Now Bar prüfbar.",
                 value = if (systemUiHookConfirmed) "Aktiv" else "Offen",
                 enabled = samsung,
+                onClick = { hookStatusRefresh += 1 },
             )
         }
         Spacer(Modifier.height(24.dp))
