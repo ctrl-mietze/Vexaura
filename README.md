@@ -41,6 +41,19 @@ The future architecture distinguishes three Android execution contexts. These ar
 
 **Planned, not implemented:** No Vexaura-specific UID 0/2000/1000 bridge has been completed or verified. A normal app cannot simply assume UID 1000. Everyday playback should remain available without elevated permissions.
 
+## Vexaura visual profiles
+
+A first Vexaura-specific UI milestone is now in development:
+
+- **Settings → Styles** with in-app previews and confirmation before applying a profile.
+- **Standard** retains the original dark-first interface.
+- **Veyra OLED Lila** and **Veyra OLED Lila Red** introduce tailored true-black palettes.
+- **Veyra Cloud OLED Purple** and **Veyra Cloud Red Purple OLED** add relaxed, continuously drifting ambient lighting, respecting reduced-motion preferences.
+- Liquid Glass is enabled by default on supported fresh installations.
+- Search shares the **same floating glass island** as the other navigation tabs, including in compact mode.
+
+These are UI changes, not a release announcement. Android build validation is performed separately; the package identity and optional system integrations remain future work.
+
 ## Foundation status
 
 > **Early development.** The initial source has been imported. App-internal rebranding, new privileged features, validation and stable releases are still ahead.
