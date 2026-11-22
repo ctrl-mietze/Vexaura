@@ -133,8 +133,10 @@ fun GlassNavBar(
     // handler out of the key.
     val currentOnTabSelected by rememberUpdatedState(onTabSelected)
 
-    // Vexaura keeps Search in the same glass island as Library, even
-    // while the player docks inline. No separate search circle is created.
+    // Search stays part of the glass island in both densities: it is merged
+    // as a regular fifth tab when expanded, and beside the active tab within
+    // the *same* pill when the player docks inline.
+    val searchIndex = tabs.lastIndex
 
     // A factory, not a value — see the note in FloatingTabBar's header. Each of
     // the three surfaces gets its own glass modifier and so its own shape cache.
@@ -235,7 +237,9 @@ fun GlassNavBar(
         contentKey = remember(selectedIndex, tabs, contentColor) {
             listOf(selectedIndex, tabs, contentColor)
         },
-        // Every destination is a regular tab in the same glass group.
+        // Expanded: merge Search as the final tab. Inline: group it beside the
+        // active tab in the same glass surface (never an outside circle).
+        mergeStandaloneWhenExpanded = true,
     ) {
         tabs.forEachIndexed { index, tab ->
             val isSelected = index == selectedIndex
@@ -269,7 +273,11 @@ fun GlassNavBar(
                     modifier = Modifier.padding(top = TAB_ICON_LABEL_GAP),
                 )
             }
-            tab(key = index, icon = icon, title = title, onClick = onClick)
+            if (index == searchIndex) {
+                standaloneTab(key = index, icon = icon, onClick = onClick, title = title)
+            } else {
+                tab(key = index, icon = icon, title = title, onClick = onClick)
+            }
         }
     }
 }
