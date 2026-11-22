@@ -94,3 +94,10 @@
 -dontwarn org.conscrypt.**
 -dontwarn com.android.org.conscrypt.**
 -dontwarn io.github.muntashirakon.adb.**
+
+# Xposed/LSPosed loads this entrypoint by string from assets/xposed_init.
+# Status cannot be inlined: the framework replaces the method at runtime.
+-keep class com.music.bitchord.xposed.VexauraHookEntry { *; }
+-keep class com.music.bitchord.data.system.XposedModuleStatus { *; }
+-neverinline class com.music.bitchord.data.system.XposedModuleStatus { public static boolean isActive(); }
+-dontwarn de.robv.android.xposed.**
