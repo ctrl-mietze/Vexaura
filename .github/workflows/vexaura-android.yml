@@ -2,6 +2,7 @@ name: Vexaura Android — verify and publish
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches: [main]
     paths:
       - "app/**"
@@ -42,7 +43,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
       - name: Install native build dependencies
         run: |
           sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
@@ -70,7 +71,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
       - name: Validate exact tag and source version
         shell: bash
         run: |
