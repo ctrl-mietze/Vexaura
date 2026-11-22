@@ -65,7 +65,7 @@ class VexauraHookEntry : IXposedHookLoadPackage {
 
     private fun refreshCard(card: View, processName: String) {
         val ctx = card.context ?: return
-        val uri = Uri.parse("content://ctrl.mietze.vexaura.systembridge/nowbar")
+        val uri = Uri.parse("content://" + com.music.bitchord.BuildConfig.APPLICATION_ID + ".systembridge/nowbar")
         val resolver = ctx.contentResolver
         // Report the callback even with the default Samsung palette selected.
         runCatching { resolver.call(uri, "nowbar_heartbeat", processName, null) }
