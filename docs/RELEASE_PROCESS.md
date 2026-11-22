@@ -16,7 +16,7 @@ On the authorized Surface, after checking the connected GitHub account, run the 
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Configure-VexauraReleaseSigning.ps1
 
-It reads the **existing** key and securely configures these four GitHub Actions Secrets, without logging their values:
+It reads the **existing** key, securely configures these four GitHub Actions Secrets without logging their values, **and immediately starts the signed release workflow for the current main version**:
 
 - VEXAURA_KEYSTORE_B64
 - VEXAURA_STORE_PASSWORD
@@ -43,7 +43,7 @@ Existing releases are never silently overwritten.
 
 Update the Gradle versionName and increment versionCode. Add optional release notes under `docs/releases/vX.Y.Z.md` and **merge the changes into main**. GitHub Actions automatically builds the signed ProdRelease APK and creates the corresponding tag and GitHub Release **only after signature, package and version verification succeed**.
 
-Existing releases are detected and skipped, never silently overwritten. Explicit tag pushes and manually dispatched releases with an existing tag are also supported. The permanent signing secrets must be configured before the release can succeed; in their absence the workflow **fails rather than publishing an incorrectly signed APK**. After a one-time signing setup, rerun the failed release job from GitHub Actions if necessary.
+Existing releases are detected and skipped, never silently overwritten. Explicit tag pushes and manually dispatched releases with an existing tag are also supported. The permanent signing secrets must be configured before the release can succeed; in their absence the workflow **fails rather than publishing an incorrectly signed APK**. The one-time signing setup script launches a new, current-main release job automatically; no manual tag or failed-job rerun is needed. The App can always be built and tested from source separately.
 
 Pull requests receive a separate ProdDebug Kotlin/Android compile check with no signing secrets.
 
