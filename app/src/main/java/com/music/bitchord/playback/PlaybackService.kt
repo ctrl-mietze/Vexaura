@@ -145,6 +145,7 @@ import com.music.bitchord.data.scrobbling.ScrobbleManager
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.AudioQuality
 import com.music.bitchord.data.settings.BitPerfectMode
+import com.music.bitchord.data.system.VexauraSessionEffects
 import com.music.bitchord.data.settings.permits
 import com.music.bitchord.data.settings.EqualizerMode
 import com.music.bitchord.data.settings.OutputPcmMode
@@ -683,6 +684,9 @@ class PlaybackService : MediaLibraryService() {
     private val loudnessA = LoudnessProcessor().apply { gainFor = ::loudnessGainFor }
     private val loudnessB = LoudnessProcessor().apply { gainFor = ::loudnessGainFor }
     private var loudnessRetryJob: Job? = null
+
+    /** Session-scoped Vexaura BassBoost/LoudnessEnhancer, never the global mixer. */
+    private val vexauraEffects = VexauraSessionEffects()
 
     /** The platform audio session currently advertised to system audio tools. */
     private var advertisedAudioEffectSessionId: Int = C.AUDIO_SESSION_ID_UNSET
@@ -1932,6 +1936,21 @@ class PlaybackService : MediaLibraryService() {
         applySettings(exoPlayer)
         applySettings(sparePlayer)
         observeSettings()
+        scope.launch {
+            combine(
+                AppSettings.vexauraBassStrength,
+                AppSettings.vexauraGainMb,
+                AppSettings.bitPerfectMode,
+            ) { bass, gain, mode -> Triple(bass, gain, mode) }
+                .collect { (bass, gain, bitPerfectMode) ->
+                    vexauraEffects.update(
+                        sessionId = player?.audioSessionId ?: 0,
+                        strength = bass,
+                        gainMb = gain,
+                        bitPerfect = bitPerfectMode != BitPerfectMode.OFF,
+                    )
+                }
+        }
         observeScrobbling()
         observeDiscord()
         watchSleepTimer()
@@ -4259,6 +4278,12 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun updateAudioEffectSession(activePlayer: ExoPlayer) {
         val sessionId = activePlayer.audioSessionId
+        vexauraEffects.update(
+            sessionId = sessionId,
+            strength = AppSettings.vexauraBassStrength.value,
+            gainMb = AppSettings.vexauraGainMb.value,
+            bitPerfect = AppSettings.bitPerfectMode.value != BitPerfectMode.OFF,
+        )
         val shouldAdvertise = activePlayer.playWhenReady &&
             (activePlayer.playbackState == Player.STATE_BUFFERING ||
                 activePlayer.playbackState == Player.STATE_READY) &&
@@ -8613,6 +8638,7 @@ class PlaybackService : MediaLibraryService() {
         CastController.detach(castPlayback)
         castPlayback.release()
         closeAudioEffectSession()
+        vexauraEffects.close()
         bluetoothTracker.stop()
         audioManager?.unregisterAudioDeviceCallback(outputDeviceCallback)
         partySync?.stop()
