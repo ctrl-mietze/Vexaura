@@ -43,6 +43,7 @@ import com.music.bitchord.data.system.XposedModuleStatus
 import com.music.bitchord.widget.MediaWidgetPill
 import com.music.bitchord.widget.MediaWidgetSquare
 import com.music.bitchord.widget.MediaWidgetWide
+import com.music.bitchord.playback.AudioOutputStatus
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -72,6 +73,10 @@ fun SystemRootScreen(
     val pcm by AppSettings.outputPcmMode.collectAsStateWithLifecycle()
     val bitPerfect by AppSettings.bitPerfectMode.collectAsStateWithLifecycle()
     val fx by VexauraAudioFxRuntime.status.collectAsStateWithLifecycle()
+    val output by AudioOutputStatus.current.collectAsStateWithLifecycle()
+    val normalization by AppSettings.loudnessNormalization.collectAsStateWithLifecycle()
+    val spatial by AppSettings.spatialAudio.collectAsStateWithLifecycle()
+    val usbPreferred by AppSettings.preferUsbDac.collectAsStateWithLifecycle()
     var root by remember { mutableStateOf(RootCheck(RootGrant.NOT_CHECKED, "Noch nicht geprüft.")) }
     var checkingRoot by remember { mutableStateOf(false) }
     var selectNowBar by remember { mutableStateOf<NowBarAccent?>(null) }
@@ -213,6 +218,13 @@ fun SystemRootScreen(
             footer = "Lossless betrifft die Quellqualität; die tatsächlich ausgehandelte Hardware-Ausgabe kann abweichen. Für unveränderte Samples bitte einen kompatiblen Bit-perfect-Modus wählen.",
         ) {
             SettingsRow(
+                icon = Icons.Rounded.Speaker,
+                title = "Aktueller Signalweg",
+                subtitle = output.deviceName + " · " + output.sink,
+                value = output.actualSampleRateHz?.let { (it / 1000f).toString() + " kHz" } ?: "–",
+            )
+            RowDivider()
+            SettingsRow(
                 icon = Icons.Rounded.Wifi,
                 title = "WLAN-Qualität",
                 value = AppSettings.audioQualityWifi.collectAsStateWithLifecycle().value.name,
@@ -244,6 +256,27 @@ fun SystemRootScreen(
                 subtitle = "Vorhandene echte USB-, DAP- und Android-Mixer-Ausgabemodi.",
                 value = bitPerfect.name,
                 onClick = onBitPerfect,
+            )
+            RowDivider()
+            SettingsSubRow(
+                title = "USB-DAC bevorzugen",
+                checked = usbPreferred,
+                onCheckedChange = AppSettings::setPreferUsbDac,
+                subtitle = "Wenn verbunden, zuerst den externen DAC wählen.",
+            )
+            RowDivider()
+            SettingsSubRow(
+                title = "Lautheit normalisieren",
+                checked = normalization,
+                onCheckedChange = AppSettings::setLoudnessNormalization,
+                subtitle = "Pegelunterschiede zwischen Songs reduzieren.",
+            )
+            RowDivider()
+            SettingsSubRow(
+                title = "Spatial Audio",
+                checked = spatial,
+                onCheckedChange = AppSettings::setSpatialAudio,
+                subtitle = "Raumklang bei unterstützten Ausgabeformaten.",
             )
             RowDivider()
             SettingsRow(
