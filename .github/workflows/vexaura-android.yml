@@ -1,0 +1,160 @@
+name: Vexaura Android — verify and publish
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "shared/**"
+      - "sharedUi/**"
+      - "wearos/**"
+      - "native/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/vexaura-android.yml"
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag, for example v0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vexaura-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@v3
+      - name: Install native build dependencies
+        run: |
+          sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+      - name: Verify Kotlin and Android resources
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:compileProdDebugKotlin --no-daemon --console=plain
+
+  release:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Build the exact tagged commit, not a moving default-branch HEAD.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@v3
+      - name: Validate exact tag and source version
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Only semantic version tags (vX.Y.Z) are allowed"; exit 1; }
+          git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG" || { echo "::error::The requested tag is missing"; exit 1; }
+          VERSION="$(sed -n 's/.*extra\["bitchordVersionName"\] = "\([^"]*\)".*/\1/p' build.gradle.kts | head -n 1)"
+          [[ "$RELEASE_TAG" == "v$VERSION" ]] || { echo "::error::Tag $RELEASE_TAG does not match Android version $VERSION"; exit 1; }
+          [[ -f app/build.gradle.kts ]] || exit 1
+
+      - name: Require permanent Vexaura signing credentials
+        env:
+          KEYSTORE_B64: ${{ secrets.VEXAURA_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.VEXAURA_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.VEXAURA_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.VEXAURA_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No debug-signing fallback: every published Vexaura APK must be
+          # upgrade-compatible with the permanent keystore on the Surface.
+          for key in KEYSTORE_B64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            [[ -n "${!key}" ]] || { echo "::error::Signing secret $key is not configured"; exit 1; }
+          done
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/vexaura-release.jks"
+          chmod 600 "$RUNNER_TEMP/vexaura-release.jks"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$RUNNER_TEMP/vexaura-release.jks" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+          chmod 600 keystore.properties
+
+      - name: Install Android native build tools
+        run: |
+          sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Build signed universal APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleProdRelease --no-daemon --console=plain
+
+      - name: Verify signature, version and package name
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' APKS < <(find app/build/outputs/apk/prod/release -maxdepth 1 -type f -name '*universal*.apk' -print0)
+          [[ "${#APKS[@]}" == 1 ]] || { echo "::error::Expected exactly one universal APK"; exit 1; }
+          APK="${APKS[0]}"
+          SIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          [[ -x "$SIGNER" && -x "$AAPT" ]] || { echo "::error::Missing verification tool"; exit 1; }
+          "$SIGNER" verify --verbose "$APK"
+          BADGING="$("$AAPT" dump badging "$APK" | grep -m1 '^package:')"
+          [[ "$BADGING" == *"name='ctrl.mietze.vexaura'"* ]] || { echo "::error::Wrong app package"; exit 1; }
+          [[ "$BADGING" == *"versionName='${RELEASE_TAG#v}'"* ]] || { echo "::error::Wrong app version"; exit 1; }
+          mkdir -p dist
+          cp "$APK" "dist/Vexaura-${RELEASE_TAG}.apk"
+          (cd dist && sha256sum "Vexaura-${RELEASE_TAG}.apk" > "Vexaura-${RELEASE_TAG}.apk.sha256")
+          echo "Verified package $BADGING"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vexaura-${{ env.RELEASE_TAG }}-signed
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release $RELEASE_TAG already exists. Published APKs must not be silently replaced."
+            exit 1
+          fi
+          NOTES="docs/releases/$RELEASE_TAG.md"
+          if [[ -f "$NOTES" ]]; then
+            gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Vexaura $RELEASE_TAG" --notes-file "$NOTES"
+          else
+            gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Vexaura $RELEASE_TAG" --generate-notes
+          fi
+
+      - name: Remove transient signing material
+        if: always()
+        shell: bash
+        run: |
+          rm -f keystore.properties "$RUNNER_TEMP/vexaura-release.jks"
