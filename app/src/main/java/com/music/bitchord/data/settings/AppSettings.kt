@@ -444,6 +444,7 @@ object AppSettings {
 
     val playbackSpeed = MutableStateFlow(1.0f)
     val themeMode = MutableStateFlow(ThemeMode.DARK)
+    val vexauraStyle = MutableStateFlow(VexauraStyle.STANDARD)
     val appFont = MutableStateFlow(AppFont.DEFAULT)
 
     /** Keep playing similar music once the queue runs out. */
@@ -540,7 +541,7 @@ object AppSettings {
     val disableBlendEffects = MutableStateFlow(false)
 
     /** Real backdrop-sampled glass (blur, lens refraction) on the floating nav bar, Android 12+ only. */
-    val liquidGlass = MutableStateFlow(false)
+    val liquidGlass = MutableStateFlow(true)
 
     /**
      * Frosts the glass instead of refracting it, for phones the lens shader is too
@@ -1101,6 +1102,9 @@ object AppSettings {
         themeMode.value = runCatching {
             ThemeMode.valueOf(prefs.getString(KEY_THEME, null) ?: "DARK")
         }.getOrDefault(ThemeMode.DARK)
+        vexauraStyle.value = runCatching {
+            VexauraStyle.valueOf(prefs.getString(KEY_VEXAURA_STYLE, null) ?: VexauraStyle.STANDARD.name)
+        }.getOrDefault(VexauraStyle.STANDARD)
         appFont.value = runCatching {
             AppFont.valueOf(prefs.getString(KEY_APP_FONT, null) ?: AppFont.DEFAULT.name)
         }.getOrDefault(AppFont.DEFAULT)
@@ -1135,7 +1139,7 @@ object AppSettings {
         smartVersionAlignment.value = prefs.getBoolean(KEY_SMART_VERSION_ALIGNMENT, true)
         reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
         disableBlendEffects.value = prefs.getBoolean(KEY_DISABLE_BLEND_EFFECTS, false)
-        liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
+        liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, true)
         glassPerformance.value = prefs.getBoolean(KEY_GLASS_PERFORMANCE, false)
         progressiveBlur.value = prefs.getBoolean(KEY_PROGRESSIVE_BLUR, false)
         lyricsBlur.value = prefs.getBoolean(KEY_LYRICS_BLUR, true)
@@ -1660,6 +1664,11 @@ object AppSettings {
         val editor = prefs.edit().putBoolean(KEY_REDUCE_BLUR, value)
         if (value) editor.putBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
         editor.apply()
+    }
+
+    fun setVexauraStyle(style: VexauraStyle) {
+        vexauraStyle.value = style
+        prefs.edit().putString(KEY_VEXAURA_STYLE, style.name).apply()
     }
 
     fun setLiquidGlass(value: Boolean) {
@@ -2450,6 +2459,7 @@ object AppSettings {
     private const val KEY_EQ_BANDS = "equalizer_bands"
     private const val KEY_SPEED = "playback_speed"
     private const val KEY_THEME = "theme_mode"
+    private const val KEY_VEXAURA_STYLE = "vexaura_style"
     private const val KEY_APP_FONT = "app_font"
     private const val KEY_AUTOPLAY = "autoplay"
     private const val KEY_SHUFFLE_ENABLED = "shuffle_enabled"
