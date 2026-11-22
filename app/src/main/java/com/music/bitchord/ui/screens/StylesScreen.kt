@@ -63,12 +63,7 @@ fun StylesScreen(
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
     ) {
-        Text(
-            text = "Styles",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 7.dp),
-        )
+        SettingsPageTitle("Styles")
         Text(
             text = "Dein Sound. Dein Look. Alle Bedienelemente bleiben vertraut.",
             style = MaterialTheme.typography.bodyMedium,
