@@ -41,7 +41,7 @@ Existing releases are never silently overwritten.
 
 ### Making a version
 
-Update the Gradle versionName and increment versionCode. Add optional release notes under \`docs/releases/vX.Y.Z.md\`, then push a new annotated tag \`vX.Y.Z\`. A tag push automatically builds and publishes the release. The same workflow can be manually triggered via GitHub Actions using an **existing** tag.
+Update the Gradle versionName and increment versionCode. Add optional release notes under `docs/releases/vX.Y.Z.md`, then push a new annotated tag `vX.Y.Z`. A tag push automatically builds and publishes the release. The same workflow can be manually triggered via GitHub Actions using an **existing** tag.
 
 Pull requests receive a separate ProdDebug Kotlin/Android compile check with no signing secrets.
 
