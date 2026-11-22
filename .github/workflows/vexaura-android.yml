@@ -2,6 +2,7 @@ name: Vexaura Android — verify and publish
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches: [main]
     paths:
       - "app/**"
