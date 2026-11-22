@@ -17,6 +17,10 @@ data class SessionFxStatus(
  * digital audio but cannot bypass a physical amplifier's hardware limits.
  * No system-file writes and no global output-mix effect.
  */
+object VexauraAudioFxRuntime {
+    val status = MutableStateFlow(SessionFxStatus())
+}
+
 class VexauraSessionEffects {
     val status = MutableStateFlow(SessionFxStatus())
     private var session = 0
@@ -31,6 +35,7 @@ class VexauraSessionEffects {
             status.value = SessionFxStatus(
                 note = if (bitPerfect) "Bei Bit-perfect deaktiviert: unveränderte Audiodaten." else "Warten auf aktive Wiedergabe.",
             )
+            VexauraAudioFxRuntime.status.value = status.value
             return
         }
         if (session != sessionId) {
@@ -89,6 +94,7 @@ class VexauraSessionEffects {
                 else -> "Audioeffekte auf Vexauras Wiedergabesitzung aktiv.",
             },
         )
+        VexauraAudioFxRuntime.status.value = status.value
     }
 
     fun close() {
@@ -102,5 +108,6 @@ class VexauraSessionEffects {
         appliedBass = -1
         appliedGain = -1
         status.value = SessionFxStatus()
+        VexauraAudioFxRuntime.status.value = status.value
     }
 }
