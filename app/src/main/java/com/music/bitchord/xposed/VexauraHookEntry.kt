@@ -1,6 +1,9 @@
 package com.music.bitchord.xposed
 
+import android.content.Context
 import android.content.res.ColorStateList
+import com.music.bitchord.xposed.nowbar.ConfigManager
+import com.music.bitchord.xposed.nowbar.NowBarHook
 import android.net.Uri
 import android.view.View
 import java.util.WeakHashMap
@@ -23,8 +26,33 @@ class VexauraHookEntry : IXposedHookLoadPackage {
     override fun handleLoadPackage(param: XC_LoadPackage.LoadPackageParam) {
         when (param.packageName) {
             "ctrl.mietze.vexaura", "ctrl.mietze.vexaura.dev" -> markOwnApp(param)
-            "com.android.systemui", "com.samsung.android.app.aodservice" -> installNowBarHook(param)
+            "com.android.systemui", "com.samsung.android.app.aodservice" -> {
+                installNowBarHook(param)
+                installAdvancedNowBar(param)
+            }
         }
+    }
+
+    // The advanced engine is installed only on the upstream-supported Samsung AOD build.
+    // Application.attach provides a real context before the FaceWidget plugin loads.
+    private fun installAdvancedNowBar(param: XC_LoadPackage.LoadPackageParam) {
+        if (param.processName?.contains(":") == true) return
+        runCatching {
+            XposedHelpers.findAndHookMethod(
+                android.app.Application::class.java, "attach", Context::class.java,
+                object : XC_MethodHook() {
+                    private var installed = false
+                    override fun afterHookedMethod(hook: MethodHookParam) {
+                        if (installed) return
+                        val context = hook.args.firstOrNull() as? Context ?: return
+                        if (!ConfigManager.isCompatible(context)) return
+                        installed = true
+                        runCatching { NowBarHook().handleLoadPackage(param) }
+                            .onFailure { XposedBridge.log("Vexaura advanced Now Bar: " + it.message) }
+                    }
+                },
+            )
+        }.onFailure { XposedBridge.log("Vexaura advanced Now Bar setup: " + it.message) }
     }
 
     private fun markOwnApp(param: XC_LoadPackage.LoadPackageParam) {

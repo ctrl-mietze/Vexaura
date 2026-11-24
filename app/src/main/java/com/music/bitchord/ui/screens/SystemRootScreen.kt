@@ -81,6 +81,7 @@ fun SystemRootScreen(
     var checkingRoot by remember { mutableStateOf(false) }
     var hookStatusRefresh by remember { mutableStateOf(0) }
     var selectNowBar by remember { mutableStateOf<NowBarAccent?>(null) }
+    var advancedNowBar by remember { mutableStateOf(false) }
 
     // Refreshing is an explicit in-page action; the root manager may display
     // its native Superuser authorization dialog on the very first check.
@@ -317,7 +318,7 @@ fun SystemRootScreen(
         SettingsGroup(
             header = "Samsung – Sperrbildschirm & Now Bar",
             footer = if (!samsung) "Samsung-exklusiv: Auf anderen Herstellern deaktiviert." else
-                "Der Xposed-Hook betrifft nur die Darstellung der vorhandenen Samsung-Medienkapsel. Andere Systemkarten bleiben unverändert.",
+                "Der klassische Farbstil bleibt verfügbar. Now Bar Studio erweitert kompatible AOD-Builds um zusätzliche Kapsel-Styles.",
         ) {
             SettingsRow(
                 icon = Icons.Rounded.Lock,
@@ -341,6 +342,15 @@ fun SystemRootScreen(
             )
             RowDivider()
             SettingsRow(
+                icon = Icons.Rounded.Palette,
+                title = "Now Bar Studio",
+                subtitle = "Farben, Verläufe, Blur und 10 Kapsel-Kategorien",
+                value = "Editor",
+                enabled = samsung,
+                onClick = { advancedNowBar = true },
+            )
+            RowDivider()
+            SettingsRow(
                 icon = Icons.Rounded.Info,
                 title = "Hook-Diagnose",
                 subtitle = if (!samsung) "Nicht verfügbar." else if (systemUiHookConfirmed)
@@ -353,6 +363,8 @@ fun SystemRootScreen(
         }
         Spacer(Modifier.height(24.dp))
     }
+
+    if (advancedNowBar) NowBarStudioDialog(onDismiss = { advancedNowBar = false })
 
     selectNowBar?.let { selection ->
         AlertDialog(
