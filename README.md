@@ -77,6 +77,10 @@ For exact scope names, security constraints, troubleshooting and architecture, s
 
 Every Vexaura milestone is published through [GitHub Releases](https://github.com/ctrl-mietze/Vexaura/releases) with an APK and release notes. This repository remains a **standalone project, not a GitHub fork**.
 
+## Now Bar Studio
+
+Optional advanced lock-screen capsule customization, integrated directly into System & Root. See [Now Bar Studio](docs/NOW_BAR_STUDIO.md) for supported AOD build, scopes and upstream credits. The original media accent remains available.
+
 ## Development status
 
 > **Early development.** Styles and the first System & Root features are being built. Features backed by private OEM hooks remain experimental until verified on compatible devices.

@@ -8,7 +8,7 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Bundle
 import android.os.Process
-import android.os.SystemClock
+import com.music.bitchord.xposed.nowbar.ConfigManager
 
 /**
  * A tiny authenticated read-only bridge from Samsung SystemUI/AOD to Vexaura.
@@ -42,13 +42,21 @@ class VexauraSystemBridgeProvider : ContentProvider() {
         val selected = runCatching {
             NowBarAccent.valueOf(prefs.getString("vexaura_nowbar_accent", "SYSTEM") ?: "SYSTEM")
         }.getOrDefault(NowBarAccent.SYSTEM)
+        val advanced = ConfigManager.isCompatible(requireNotNull(context)) &&
+            ConfigManager.loadFromAppPrefs(requireNotNull(context)).masterEnabled
         return MatrixCursor(arrayOf("enabled", "accent", "argb")).apply {
-            addRow(arrayOf<Any>(if (selected == NowBarAccent.SYSTEM) 0 else 1, selected.name, selected.color))
+            addRow(arrayOf<Any>(if (advanced || selected == NowBarAccent.SYSTEM) 0 else 1, selected.name, selected.color))
         }
     }
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         enforceCaller()
+        if (method == "nowbar_config") {
+            val app = requireNotNull(context)
+            val cfg = ConfigManager.loadFromAppPrefs(app)
+            if (!ConfigManager.isCompatible(app)) cfg.masterEnabled = false
+            return Bundle().apply { putString("config_json", cfg.toJsonString()) }
+        }
         if (method != "nowbar_heartbeat") return Bundle.EMPTY
         val app = requireNotNull(context)
         app.getSharedPreferences("vexaura_hook_status", 0).edit()

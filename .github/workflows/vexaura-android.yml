@@ -48,10 +48,10 @@ jobs:
       - name: Install native build dependencies
         run: |
           sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
-      - name: Verify Kotlin and Android resources
+      - name: Verify Kotlin, Java, Android resources and Now Bar config
         run: |
           chmod +x ./gradlew
-          ./gradlew :app:compileProdDebugKotlin --no-daemon --console=plain
+          ./gradlew :app:compileProdDebugKotlin :app:compileProdDebugJavaWithJavac :app:testProdDebugUnitTest --tests 'com.music.bitchord.xposed.nowbar.NowBarConfigTest' -Pbitchord.bundleWear=false --no-daemon --console=plain
 
   release:
     if: github.event_name != 'pull_request'
